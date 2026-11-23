@@ -1,3 +1,4 @@
+/* Hallmark · Theme: Ribbon (Lull Dark Aesthetic) */
 @import 'tailwindcss';
 
 @source '../views';
@@ -5,5 +6,255 @@
 @source '../../storage/framework/views/*.php';
 
 @theme {
-    --font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'JetBrains Mono', 'SFMono-Regular', ui-monospace, monospace;
+}
+
+:root {
+    /* Lull Theme Colors */
+    --lull-bg: #07090e;
+    --lull-bg-subtle: #0b0e15;
+    --lull-card: #0f141f;
+    --lull-card-elevated: #131926;
+    --lull-card-inner: #0b0f17;
+    --lull-border: rgba(255, 255, 255, 0.08);
+    --lull-border-hover: rgba(255, 255, 255, 0.16);
+    --lull-border-strong: rgba(255, 255, 255, 0.25);
+    
+    /* Text Hierarchy */
+    --lull-text-primary: #ffffff;
+    --lull-text-secondary: #cbd5e1;
+    --lull-text-muted: #94a3b8;
+    --lull-text-faint: #64748b;
+
+    /* Signature Warm Peach / Sand Accent from Lull */
+    --lull-accent: #f4ba88;
+    --lull-accent-hover: #f7ca9f;
+    --lull-accent-dark: #e09855;
+    --lull-accent-ink: #181109;
+    --lull-accent-glow: rgba(244, 186, 136, 0.25);
+    --lull-accent-soft: rgba(244, 186, 136, 0.12);
+
+    /* Status Accents (Refined & Soft for Dark Theme) */
+    --lull-emerald: #34d399;
+    --lull-emerald-soft: rgba(52, 211, 153, 0.12);
+    --lull-rose: #fb7185;
+    --lull-rose-soft: rgba(251, 113, 133, 0.12);
+    --lull-blue: #60a5fa;
+    --lull-blue-soft: rgba(96, 165, 250, 0.12);
+}
+
+html, body {
+    background-color: var(--lull-bg);
+    color: var(--lull-text-secondary);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    letter-spacing: -0.01em;
+    min-height: 100vh;
+}
+
+/* Atmospheric background gradient matching Lull screenshot */
+body {
+    background-color: #07090e;
+    background-image: 
+        radial-gradient(circle at 80% 12%, rgba(244, 186, 136, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 15% 75%, rgba(20, 26, 39, 0.8) 0%, transparent 50%),
+        linear-gradient(to bottom, #07090e 0%, #090c13 100%);
+    background-attachment: fixed;
+}
+
+/* Headings with crisp white and tight tracking like "Rain, wind, a distant train." */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--lull-text-primary);
+    letter-spacing: -0.03em;
+}
+
+.font-mono {
+    font-family: var(--font-mono);
+}
+
+/* Universal Overrides for Crisp Dark Mode */
+.bg-white {
+    background-color: var(--lull-card) !important;
+    border-color: var(--lull-border) !important;
+}
+
+.bg-slate-50 {
+    background-color: #0c1018 !important;
+}
+
+.bg-slate-100 {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.bg-slate-200 {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.border-slate-100,
+.border-slate-200,
+.border-slate-300,
+.border-slate-200\/90,
+.border-slate-200\/80 {
+    border-color: var(--lull-border) !important;
+}
+
+.divide-slate-50 > :not([hidden]) ~ :not([hidden]),
+.divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+.divide-slate-200 > :not([hidden]) ~ :not([hidden]) {
+    border-color: var(--lull-border) !important;
+}
+
+.text-slate-900,
+.text-slate-800 {
+    color: var(--lull-text-primary) !important;
+}
+
+.text-slate-700,
+.text-slate-600 {
+    color: var(--lull-text-secondary) !important;
+}
+
+.text-slate-500,
+.text-slate-400 {
+    color: var(--lull-text-muted) !important;
+}
+
+.text-slate-300 {
+    color: var(--lull-text-faint) !important;
+}
+
+/* Status Colors in Dark Mode */
+.bg-emerald-50,
+.bg-emerald-100 {
+    background-color: var(--lull-emerald-soft) !important;
+    border-color: rgba(52, 211, 153, 0.25) !important;
+}
+.text-emerald-600,
+.text-emerald-700,
+.text-emerald-800 {
+    color: var(--lull-emerald) !important;
+}
+
+.bg-rose-50,
+.bg-rose-100 {
+    background-color: var(--lull-rose-soft) !important;
+    border-color: rgba(251, 113, 133, 0.25) !important;
+}
+.text-rose-600,
+.text-rose-700,
+.text-rose-800 {
+    color: var(--lull-rose) !important;
+}
+
+.bg-blue-50,
+.bg-blue-100 {
+    background-color: var(--lull-blue-soft) !important;
+    border-color: rgba(96, 165, 250, 0.25) !important;
+}
+.text-blue-600,
+.text-blue-700,
+.text-blue-800 {
+    color: var(--lull-blue) !important;
+}
+
+/* Primary Green Buttons converted to Signature Peach CTA ("Start for £3 a month" style) */
+.bg-emerald-600,
+.bg-emerald-700 {
+    background-color: var(--lull-accent) !important;
+    color: var(--lull-accent-ink) !important;
+    font-weight: 600 !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.bg-emerald-600:hover,
+.bg-emerald-700:hover {
+    background-color: var(--lull-accent-hover) !important;
+    color: var(--lull-accent-ink) !important;
+}
+
+/* Secondary Button Overrides */
+.hover\:bg-slate-50:hover,
+.hover\:bg-slate-100:hover {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Signature Peach CTA Button */
+.btn-lull-primary {
+    background-color: var(--lull-accent);
+    color: var(--lull-accent-ink);
+    font-weight: 600;
+    border-radius: 9999px;
+    padding: 0.625rem 1.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    box-shadow: 0 8px 24px -4px var(--lull-accent-glow);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.btn-lull-primary:hover {
+    background-color: var(--lull-accent-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 12px 28px -4px rgba(244, 186, 136, 0.35);
+}
+
+/* Secondary Pill Button */
+.btn-lull-secondary {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--lull-text-primary);
+    border: 1px solid var(--lull-border);
+    border-radius: 9999px;
+    padding: 0.5rem 1.25rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-lull-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: var(--lull-border-hover);
+    color: #ffffff;
+}
+
+/* Progress bar glowing tracks */
+.progress-bar {
+    transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    border-radius: 9999px;
+}
+
+/* Form Controls in Dark Glass */
+input, select, textarea {
+    background-color: #0c1018 !important;
+    border: 1px solid var(--lull-border) !important;
+    color: #ffffff !important;
+    border-radius: 0.75rem;
+}
+
+input:focus, select:focus, textarea:focus {
+    border-color: var(--lull-accent) !important;
+    box-shadow: 0 0 0 3px var(--lull-accent-soft) !important;
+    outline: none !important;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #07090e;
+}
+::-webkit-scrollbar-thumb {
+    background: #1a2333;
+    border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #2a374f;
 }

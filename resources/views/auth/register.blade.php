@@ -4,17 +4,17 @@
 
 @section('content')
 <div class="min-h-[75vh] flex items-center justify-center py-6 sm:py-12">
-    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200/80 p-8 sm:p-10">
+    <div class="w-full max-w-md lull-card p-8 sm:p-10 shadow-2xl border border-white/10">
         
         <div class="text-center">
-            <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200 mx-auto flex items-center justify-center mb-3">
+            <div class="w-12 h-12 rounded-2xl bg-[#f4ba88]/15 text-[#f4ba88] border border-[#f4ba88]/25 mx-auto flex items-center justify-center mb-3">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                 </svg>
             </div>
-            <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight">Buat Akun KeuanganKu</h2>
-            <p class="mt-1 text-xs sm:text-sm text-slate-500">
-                Mulai kelola alokasi pengeluaran dan tabungan bulanan Anda secara rapi.
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Buat Akun KeuanganKu</h2>
+            <p class="mt-1 text-xs sm:text-sm text-slate-400">
+                Kelola alokasi pengeluaran dan tabungan bulanan secara rapi.
             </p>
         </div>
 
@@ -23,7 +23,7 @@
 
             <!-- Name -->
             <div>
-                <label for="name" class="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
+                <label for="name" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
                     Nama Lengkap
                 </label>
                 <input 
@@ -34,16 +34,16 @@
                     required 
                     autofocus 
                     placeholder="Contoh: Rifki Pratama"
-                    class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 transition-all @error('name') border-rose-500 focus:border-rose-500 focus:ring-rose-500/20 @enderror"
+                    class="w-full px-3.5 py-2.5 text-xs sm:text-sm"
                 >
                 @error('name')
-                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
+                    <p class="mt-1 text-xs text-rose-400 font-medium">{{ $message }}</p>
                 @enderror
             </div>
 
             <!-- Email -->
             <div>
-                <label for="email" class="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
+                <label for="email" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
                     Alamat Email
                 </label>
                 <input 
@@ -53,16 +53,16 @@
                     value="{{ old('email') }}" 
                     required 
                     placeholder="nama@email.com"
-                    class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 transition-all @error('email') border-rose-500 focus:border-rose-500 focus:ring-rose-500/20 @enderror"
+                    class="w-full px-3.5 py-2.5 text-xs sm:text-sm"
                 >
                 @error('email')
-                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
+                    <p class="mt-1 text-xs text-rose-400 font-medium">{{ $message }}</p>
                 @enderror
             </div>
 
             <!-- Password -->
             <div>
-                <label for="password" class="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
+                <label for="password" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
                     Kata Sandi
                 </label>
                 <input 
@@ -71,16 +71,16 @@
                     id="password" 
                     required 
                     placeholder="Minimal 6 karakter"
-                    class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 transition-all @error('password') border-rose-500 focus:border-rose-500 focus:ring-rose-500/20 @enderror"
+                    class="w-full px-3.5 py-2.5 text-xs sm:text-sm"
                 >
                 @error('password')
-                    <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
+                    <p class="mt-1 text-xs text-rose-400 font-medium">{{ $message }}</p>
                 @enderror
             </div>
 
             <!-- Confirm Password -->
             <div>
-                <label for="password_confirmation" class="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
+                <label for="password_confirmation" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
                     Konfirmasi Kata Sandi
                 </label>
                 <input 
@@ -89,14 +89,14 @@
                     id="password_confirmation" 
                     required 
                     placeholder="Ketik ulang kata sandi"
-                    class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 transition-all"
+                    class="w-full px-3.5 py-2.5 text-xs sm:text-sm"
                 >
             </div>
 
             <!-- Submit -->
             <button 
                 type="submit" 
-                class="w-full mt-4 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-sm font-semibold rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
+                class="btn-lull-primary w-full mt-4 py-3 text-sm"
             >
                 <span>Daftar Akun Baru</span>
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -105,13 +105,12 @@
             </button>
         </form>
 
-        <div class="mt-6 pt-6 border-t border-slate-100 text-center text-xs text-slate-500">
+        <div class="mt-6 pt-6 border-t border-white/[0.08] text-center text-xs text-slate-400">
             Sudah memiliki akun?
-            <a href="{{ route('login') }}" class="font-semibold text-emerald-600 hover:text-emerald-700 ml-1">
+            <a href="{{ route('login') }}" class="font-semibold text-[#f4ba88] hover:underline ml-1">
                 Masuk ke akun Anda
             </a>
         </div>
     </div>
 </div>
 @endsection
-

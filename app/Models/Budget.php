@@ -15,6 +15,7 @@ class Budget extends Model
         'category',
         'amount',
         'period',
+        'budget_type', // 'monthly' atau 'daily'
     ];
 
     protected $casts = [
@@ -29,5 +30,10 @@ class Budget extends Model
     public function getFormattedAmountAttribute(): string
     {
         return 'Rp ' . number_format($this->amount, 0, ',', '.');
+    }
+
+    public function getTypeLabel(): string
+    {
+        return $this->budget_type === 'daily' ? 'Harian' : 'Bulanan';
     }
 }
