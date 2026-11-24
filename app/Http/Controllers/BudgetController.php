@@ -28,16 +28,18 @@ class BudgetController extends Controller
         $selectedMonth = $request->get('month', $now->format('Y-m'));
         $selectedYear  = $request->get('year',  $now->format('Y'));
 
-        return match ($activeTab) {
-            'daily'   => $this->buildView($user, 'daily',   $selectedDate),
-            'weekly'  => $this->buildView($user, 'weekly',  $selectedWeek),
-            'monthly' => $this->buildView($user, 'monthly', $selectedMonth),
-            'yearly'  => $this->buildView($user, 'yearly',  $selectedYear),
+        $period = match ($activeTab) {
+            'daily'   => $selectedDate,
+            'weekly'  => $selectedWeek,
+            'monthly' => $selectedMonth,
+            'yearly'  => $selectedYear,
         };
+
+        return $this->buildView($user, $activeTab, $period, $selectedDate, $selectedWeek, $selectedMonth, $selectedYear);
     }
 
     // ─── GENERIC VIEW BUILDER ─────────────────────────────────────────────
-    private function buildView($user, string $type, string $period): \Illuminate\View\View
+    private function buildView($user, string $type, string $period, string $selectedDate, string $selectedWeek, string $selectedMonth, string $selectedYear): \Illuminate\View\View
     {
         $expenseMeta = Transaction::EXPENSE_CATEGORIES;
 
@@ -61,16 +63,12 @@ class BudgetController extends Controller
             ? min(round(($totalUsed / $totalBudget) * 100, 1), 100)
             : 0;
 
-        $now = Carbon::now();
-
         return view('budgets.index', [
             'activeTab'          => $type,
-            'selectedDate'       => $now->format('Y-m-d'),
-            'selectedWeek'       => $now->format('Y-\WW'),
-            'selectedMonth'      => $now->format('Y-m'),
-            'selectedYear'       => $now->format('Y'),
-            // override selected period for the active tab
-            'selected' . ucfirst($type === 'daily' ? 'Date' : ($type === 'weekly' ? 'Week' : ($type === 'monthly' ? 'Month' : 'Year'))) => $period,
+            'selectedDate'       => $selectedDate,
+            'selectedWeek'       => $selectedWeek,
+            'selectedMonth'      => $selectedMonth,
+            'selectedYear'       => $selectedYear,
             'currentPeriod'      => $period,
             'periodLabel'        => $this->periodLabel($type, $period),
             'budgetItems'        => $budgetItems->sortByDesc('budget')->values(),
@@ -178,43 +176,218 @@ class BudgetController extends Controller
             'yearly'  => ['required', 'digits:4', 'integer', 'min:2000', 'max:2099'],
         };
 
+        // Prepare amount if only period-specific input was filled
+        if (!$request->filled('amount')) {
+            $request->merge([
+                'amount' => $request->input('amount_' . $budgetType)
+                    ?? $request->input('amount_monthly')
+                    ?? $request->input('amount_daily')
+                    ?? $request->input('amount_weekly')
+                    ?? $request->input('amount_yearly')
+            ]);
+        }
+
         $request->validate([
-            'category'    => 'required|string|max:100',
-            'amount'      => 'required|numeric|min:1',
-            'budget_type' => 'required|in:daily,weekly,monthly,yearly',
-            'period'      => $periodRules,
+            'category'       => 'required|string|max:100',
+            'amount'         => 'required|numeric|min:1',
+            'amount_daily'   => 'nullable|numeric|min:1',
+            'amount_weekly'  => 'nullable|numeric|min:1',
+            'amount_monthly' => 'nullable|numeric|min:1',
+            'amount_yearly'  => 'nullable|numeric|min:1',
+            'budget_type'    => 'required|in:daily,weekly,monthly,yearly',
+            'period'         => $periodRules,
         ]);
 
         $period   = (string) $request->period;
-        $budgetId = $request->input('budget_id');
+        $category = $request->category;
+        $syncAll  = $request->boolean('sync_all_periods', true);
 
-        if ($budgetId) {
-            $budget = Budget::where('user_id', Auth::id())->findOrFail($budgetId);
-            $budget->update(['amount' => $request->amount]);
+        // Calculate all 4 periods
+        $amounts = $this->resolvePeriodAmounts(
+            $budgetType,
+            (float) $request->amount,
+            $request->filled('amount_daily')   ? (float) $request->amount_daily   : null,
+            $request->filled('amount_weekly')  ? (float) $request->amount_weekly  : null,
+            $request->filled('amount_monthly') ? (float) $request->amount_monthly : null,
+            $request->filled('amount_yearly')  ? (float) $request->amount_yearly  : null
+        );
+
+        $now = Carbon::now();
+        $pDaily   = (string) $request->input('period_daily',   $now->format('Y-m-d'));
+        $pWeekly  = (string) $request->input('period_weekly',  $now->format('Y-\WW'));
+        $pMonthly = (string) $request->input('period_monthly', $now->format('Y-m'));
+        $pYearly  = (string) $request->input('period_yearly',  $now->format('Y'));
+
+        if ($syncAll) {
+            $syncConfigs = [
+                'daily'   => ['period' => $pDaily,   'amount' => $amounts['daily']],
+                'weekly'  => ['period' => $pWeekly,  'amount' => $amounts['weekly']],
+                'monthly' => ['period' => $pMonthly, 'amount' => $amounts['monthly']],
+                'yearly'  => ['period' => $pYearly,  'amount' => $amounts['yearly']],
+            ];
+
+            foreach ($syncConfigs as $t => $cfg) {
+                if ($cfg['amount'] > 0 && !empty($cfg['period'])) {
+                    Budget::updateOrCreate(
+                        [
+                            'user_id'     => Auth::id(),
+                            'category'    => $category,
+                            'budget_type' => $t,
+                            'period'      => $cfg['period'],
+                        ],
+                        ['amount' => $cfg['amount']]
+                    );
+                }
+            }
         } else {
-            Budget::updateOrCreate(
-                [
-                    'user_id'     => Auth::id(),
-                    'category'    => $request->category,
-                    'period'      => $period,
-                    'budget_type' => $budgetType,
-                ],
-                ['amount' => $request->amount]
-            );
+            $budgetId = $request->input('budget_id');
+            $primaryAmt = $amounts[$budgetType] ?? $request->amount;
+
+            if ($budgetId) {
+                $budget = Budget::where('user_id', Auth::id())->findOrFail($budgetId);
+                $budget->update(['amount' => $primaryAmt]);
+            } else {
+                Budget::updateOrCreate(
+                    [
+                        'user_id'     => Auth::id(),
+                        'category'    => $category,
+                        'period'      => $period,
+                        'budget_type' => $budgetType,
+                    ],
+                    ['amount' => $primaryAmt]
+                );
+            }
         }
 
         return redirect()
             ->route('budgets.index', $this->redirectParams($budgetType, $period))
-            ->with('toast_success', 'Anggaran berhasil disimpan!');
+            ->with('toast_success', $syncAll
+                ? 'Anggaran ' . $category . ' berhasil disimpan dan otomatis disinkronkan ke semua periode (Harian, Mingguan, Bulanan, Tahunan)!'
+                : 'Anggaran berhasil disimpan!');
     }
 
     // ─── UPDATE ──────────────────────────────────────────────────────────
     public function update(Request $request, Budget $budget)
     {
         abort_unless($budget->user_id === Auth::id(), 403);
-        $request->validate(['amount' => 'required|numeric|min:1']);
-        $budget->update(['amount' => $request->amount]);
-        return back()->with('toast_success', 'Anggaran berhasil diperbarui!');
+
+        $request->validate(['amount' => 'nullable|numeric|min:1']);
+        $amount = (float) $request->input('amount', $request->input('amount_' . $budget->budget_type, $budget->amount));
+        $budget->update(['amount' => $amount]);
+
+        $syncAll = $request->boolean('sync_all_periods', true);
+        if ($syncAll) {
+            $amounts = $this->resolvePeriodAmounts(
+                $budget->budget_type,
+                $amount,
+                $request->filled('amount_daily')   ? (float) $request->amount_daily   : null,
+                $request->filled('amount_weekly')  ? (float) $request->amount_weekly  : null,
+                $request->filled('amount_monthly') ? (float) $request->amount_monthly : null,
+                $request->filled('amount_yearly')  ? (float) $request->amount_yearly  : null
+            );
+
+            $now = Carbon::now();
+            $pDaily   = (string) $request->input('period_daily',   $now->format('Y-m-d'));
+            $pWeekly  = (string) $request->input('period_weekly',  $now->format('Y-\WW'));
+            $pMonthly = (string) $request->input('period_monthly', $now->format('Y-m'));
+            $pYearly  = (string) $request->input('period_yearly',  $now->format('Y'));
+
+            $syncConfigs = [
+                'daily'   => ['period' => $pDaily,   'amount' => $amounts['daily']],
+                'weekly'  => ['period' => $pWeekly,  'amount' => $amounts['weekly']],
+                'monthly' => ['period' => $pMonthly, 'amount' => $amounts['monthly']],
+                'yearly'  => ['period' => $pYearly,  'amount' => $amounts['yearly']],
+            ];
+
+            foreach ($syncConfigs as $t => $cfg) {
+                if ($t !== $budget->budget_type && $cfg['amount'] > 0 && !empty($cfg['period'])) {
+                    Budget::updateOrCreate(
+                        [
+                            'user_id'     => Auth::id(),
+                            'category'    => $budget->category,
+                            'budget_type' => $t,
+                            'period'      => $cfg['period'],
+                        ],
+                        ['amount' => $cfg['amount']]
+                    );
+                }
+            }
+        }
+
+        return back()->with('toast_success', 'Anggaran berhasil diperbarui dan disinkronkan ke seluruh periode!');
+    }
+
+    // ─── PERIOD AMOUNTS RESOLVER ─────────────────────────────────────────
+    private function resolvePeriodAmounts(string $baseType, float $baseAmount, ?float $daily, ?float $weekly, ?float $monthly, ?float $yearly): array
+    {
+        // 1. If daily was explicitly supplied
+        if ($daily !== null && $daily > 0 && $weekly === null && $monthly === null && $yearly === null) {
+            $w = round($daily * 7);
+            $m = round($daily * 30);
+            $y = round($m * 12);
+            return ['daily' => $daily, 'weekly' => $w, 'monthly' => $m, 'yearly' => $y];
+        }
+
+        // 2. If weekly was explicitly supplied
+        if ($weekly !== null && $weekly > 0 && $daily === null && $monthly === null && $yearly === null) {
+            $d = round($weekly / 7);
+            $m = round($d * 30);
+            $y = round($m * 12);
+            return ['daily' => $d, 'weekly' => $weekly, 'monthly' => $m, 'yearly' => $y];
+        }
+
+        // 3. If monthly was explicitly supplied
+        if ($monthly !== null && $monthly > 0 && $daily === null && $weekly === null && $yearly === null) {
+            $d = round($monthly / 30);
+            $w = round($d * 7);
+            $y = round($monthly * 12);
+            return ['daily' => $d, 'weekly' => $w, 'monthly' => $monthly, 'yearly' => $y];
+        }
+
+        // 4. If yearly was explicitly supplied
+        if ($yearly !== null && $yearly > 0 && $daily === null && $weekly === null && $monthly === null) {
+            $m = round($yearly / 12);
+            $d = round($m / 30);
+            $w = round($d * 7);
+            return ['daily' => $d, 'weekly' => $w, 'monthly' => $m, 'yearly' => $yearly];
+        }
+
+        // 5. If all or multiple were provided (e.g. from client calculation)
+        if ($daily !== null || $weekly !== null || $monthly !== null || $yearly !== null) {
+            $d = $daily ?? ($monthly ? round($monthly / 30) : ($weekly ? round($weekly / 7) : round($yearly / 360)));
+            $w = $weekly ?? round($d * 7);
+            $m = $monthly ?? round($d * 30);
+            $y = $yearly ?? round($m * 12);
+            return ['daily' => (float)$d, 'weekly' => (float)$w, 'monthly' => (float)$m, 'yearly' => (float)$y];
+        }
+
+        // 6. Fallback based on $baseType & $baseAmount
+        return match ($baseType) {
+            'daily' => [
+                'daily'   => $baseAmount,
+                'weekly'  => round($baseAmount * 7),
+                'monthly' => round($baseAmount * 30),
+                'yearly'  => round($baseAmount * 30 * 12),
+            ],
+            'weekly' => [
+                'daily'   => round($baseAmount / 7),
+                'weekly'  => $baseAmount,
+                'monthly' => round(($baseAmount / 7) * 30),
+                'yearly'  => round(($baseAmount / 7) * 30 * 12),
+            ],
+            'yearly' => [
+                'daily'   => round(($baseAmount / 12) / 30),
+                'weekly'  => round((($baseAmount / 12) / 30) * 7),
+                'monthly' => round($baseAmount / 12),
+                'yearly'  => $baseAmount,
+            ],
+            default => [
+                'daily'   => round($baseAmount / 30),
+                'weekly'  => round(($baseAmount / 30) * 7),
+                'monthly' => $baseAmount,
+                'yearly'  => round($baseAmount * 12),
+            ],
+        };
     }
 
     // ─── DESTROY ─────────────────────────────────────────────────────────

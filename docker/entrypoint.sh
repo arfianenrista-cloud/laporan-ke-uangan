@@ -40,3 +40,4 @@ php artisan view:cache || true
 PORT=${PORT:-8000}
 echo "Starting KeuanganKu application on port $PORT..."
 exec php artisan serve --host=0.0.0.0 --port="$PORT"
+

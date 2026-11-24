@@ -267,17 +267,17 @@
 @endsection
 
 @push('modals')
-{{-- ─── MODAL (Dark Luxury Lull Modal / Mobile Bottom Sheet) ────────────── --}}
+{{-- ─── MODAL (Dark Luxury Lull Modal / Mobile Bottom Sheet with Auto Multi-Period Sync) ─── --}}
 <div id="budgetModal" class="hidden fixed inset-0 z-50 pointer-events-none">
     <div class="fixed inset-0 bg-black/80 backdrop-blur-md pointer-events-auto" onclick="closeModal('budgetModal')"></div>
     <div class="relative z-20 pointer-events-auto flex items-end sm:items-center justify-center min-h-screen p-0 sm:p-4">
-        <div class="lull-card w-full sm:max-w-sm p-6 shadow-2xl border-t sm:border border-white/15 rounded-t-3xl sm:rounded-2xl max-h-[92vh] overflow-y-auto" onclick="event.stopPropagation()">
+        <div class="lull-card w-full sm:max-w-xl p-5 sm:p-6 shadow-2xl border-t sm:border border-white/15 rounded-t-3xl sm:rounded-2xl max-h-[92vh] overflow-y-auto" onclick="event.stopPropagation()">
             <div class="w-12 h-1 bg-white/20 rounded-full mx-auto mb-4 sm:hidden"></div>
 
             <div class="flex items-center justify-between pb-4 border-b border-white/[0.08] mb-5">
                 <div>
-                    <h3 class="text-base font-bold text-white tracking-tight" id="budgetModalTitle">Set Anggaran</h3>
-                    <p class="text-xs text-slate-400 mt-0.5">{{ $periodLabel }}</p>
+                    <h3 class="text-base font-bold text-white tracking-tight" id="budgetModalTitle">Set Anggaran Terpadu</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Isi salah satu periode, nilai periode lainnya akan terhitung otomatis</p>
                 </div>
                 <button onclick="closeModal('budgetModal')"
                     class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
@@ -289,17 +289,24 @@
 
             <form id="budgetForm" method="POST" action="{{ route('budgets.store') }}" class="space-y-4">
                 @csrf
-                <input type="hidden" name="_method"     id="budgetFormMethod" value="POST">
-                <input type="hidden" name="budget_type" value="{{ $activeTab }}">
-                <input type="hidden" name="period"      value="{{ $currentPeriod }}">
-                <input type="hidden" name="budget_id"   id="budgetId" value="">
+                <input type="hidden" name="_method"        id="budgetFormMethod" value="POST">
+                <input type="hidden" name="budget_type"    id="budgetActiveType" value="{{ $activeTab }}">
+                <input type="hidden" name="period"         value="{{ $currentPeriod }}">
+                <input type="hidden" name="budget_id"      id="budgetId" value="">
+                <input type="hidden" name="amount"         id="budgetAmount" value="">
+                
+                {{-- Periode target untuk sinkronisasi otomatis --}}
+                <input type="hidden" name="period_daily"   value="{{ $selectedDate }}">
+                <input type="hidden" name="period_weekly"  value="{{ $selectedWeek }}">
+                <input type="hidden" name="period_monthly" value="{{ $selectedMonth }}">
+                <input type="hidden" name="period_yearly"  value="{{ $selectedYear }}">
 
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
-                        Kategori Pengeluaran
+                        Kategori Pengeluaran <span class="text-rose-400">*</span>
                     </label>
                     <select name="category" id="budgetCategory" required
-                        class="w-full px-3.5 py-2.5 text-xs">
+                        class="w-full px-3.5 py-2.5 text-xs bg-[#07090e] border border-white/15 rounded-xl text-white focus:outline-none focus:border-[#f4ba88]">
                         <option value="">Pilih kategori...</option>
                         @foreach(array_keys($expenseCategories) as $cat)
                         <option value="{{ $cat }}">{{ $cat }}</option>
@@ -307,16 +314,109 @@
                     </select>
                 </div>
 
+                {{-- ─── 4 INTERCONNECTED SMART PERIOD INPUTS ─────────────────── --}}
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
-                        Batas Anggaran (Rp)
-                    </label>
-                    <div class="relative">
-                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">Rp</span>
-                        <input type="number" name="amount" id="budgetAmount" required min="1" placeholder="0"
-                            class="w-full pl-10 pr-3.5 py-2.5 text-xs font-mono">
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                            Batas Anggaran (Kalkulasi Otomatis)
+                        </label>
+                        <span class="text-[10px] text-[#f4ba88] bg-[#f4ba88]/10 border border-[#f4ba88]/20 px-2 py-0.5 rounded-full font-medium">
+                            ⚡ Saling Terhubung
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <!-- 1. Harian -->
+                        <div class="p-3 rounded-xl bg-[#07090e] border border-white/10 hover:border-emerald-500/40 transition-colors">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                                    Harian
+                                </span>
+                                <span class="text-[10px] text-slate-500">1 Hari</span>
+                            </div>
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">Rp</span>
+                                <input type="number" name="amount_daily" id="budgetDailyInput" min="1" placeholder="0"
+                                    oninput="updateBudgetCalculations('daily')"
+                                    class="w-full pl-9 pr-3 py-2 text-xs font-mono font-bold bg-[#0c1018] border border-white/10 rounded-lg text-white focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400">
+                            </div>
+                            <div class="mt-1 text-[10px] text-emerald-400 font-mono" id="previewDailyFormatted">
+                                —
+                            </div>
+                        </div>
+
+                        <!-- 2. Mingguan -->
+                        <div class="p-3 rounded-xl bg-[#07090e] border border-white/10 hover:border-blue-500/40 transition-colors">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-blue-400"></span>
+                                    Mingguan
+                                </span>
+                                <span class="text-[10px] text-slate-500">7 Hari</span>
+                            </div>
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">Rp</span>
+                                <input type="number" name="amount_weekly" id="budgetWeeklyInput" min="1" placeholder="0"
+                                    oninput="updateBudgetCalculations('weekly')"
+                                    class="w-full pl-9 pr-3 py-2 text-xs font-mono font-bold bg-[#0c1018] border border-white/10 rounded-lg text-white focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400">
+                            </div>
+                            <div class="mt-1 text-[10px] text-blue-400 font-mono" id="previewWeeklyFormatted">
+                                —
+                            </div>
+                        </div>
+
+                        <!-- 3. Bulanan -->
+                        <div class="p-3 rounded-xl bg-[#07090e] border border-white/10 hover:border-[#f4ba88]/40 transition-colors">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-[#f4ba88]"></span>
+                                    Bulanan
+                                </span>
+                                <span class="text-[10px] text-slate-500">30 Hari</span>
+                            </div>
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">Rp</span>
+                                <input type="number" name="amount_monthly" id="budgetMonthlyInput" min="1" placeholder="0"
+                                    oninput="updateBudgetCalculations('monthly')"
+                                    class="w-full pl-9 pr-3 py-2 text-xs font-mono font-bold bg-[#0c1018] border border-white/10 rounded-lg text-white focus:outline-none focus:border-[#f4ba88] focus:ring-1 focus:ring-[#f4ba88]">
+                            </div>
+                            <div class="mt-1 text-[10px] text-[#f4ba88] font-mono" id="previewMonthlyFormatted">
+                                —
+                            </div>
+                        </div>
+
+                        <!-- 4. Tahunan -->
+                        <div class="p-3 rounded-xl bg-[#07090e] border border-white/10 hover:border-purple-500/40 transition-colors">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-purple-400"></span>
+                                    Tahunan
+                                </span>
+                                <span class="text-[10px] text-slate-500">12 Bulan</span>
+                            </div>
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">Rp</span>
+                                <input type="number" name="amount_yearly" id="budgetYearlyInput" min="1" placeholder="0"
+                                    oninput="updateBudgetCalculations('yearly')"
+                                    class="w-full pl-9 pr-3 py-2 text-xs font-mono font-bold bg-[#0c1018] border border-white/10 rounded-lg text-white focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400">
+                            </div>
+                            <div class="mt-1 text-[10px] text-purple-400 font-mono" id="previewYearlyFormatted">
+                                —
+                            </div>
+                        </div>
                     </div>
                 </div>
+
+                {{-- Sync Checkbox --}}
+                <label class="flex items-start gap-2.5 p-3 rounded-xl bg-white/[0.03] border border-white/10 cursor-pointer hover:bg-white/[0.05] transition-colors">
+                    <input type="checkbox" name="sync_all_periods" id="syncAllPeriodsCheckbox" value="1" checked
+                        class="mt-0.5 rounded text-[#f4ba88] focus:ring-[#f4ba88] bg-[#07090e] border-white/20">
+                    <div class="text-xs">
+                        <span class="font-semibold text-white">Sinkronkan otomatis ke semua periode</span>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Menyimpan dan mengaktifkan kuota anggaran di tab Harian, Mingguan, Bulanan, dan Tahunan sekaligus.</p>
+                    </div>
+                </label>
 
                 <div class="flex gap-2.5 pt-3">
                     <button type="button" onclick="closeModal('budgetModal')"
@@ -325,7 +425,7 @@
                     </button>
                     <button type="submit"
                         class="btn-lull-primary flex-1 text-xs justify-center">
-                        Simpan
+                        Simpan Anggaran
                     </button>
                 </div>
             </form>
@@ -336,27 +436,164 @@
 
 @push('scripts')
 <script>
+const activeBudgetType = "{{ $activeTab }}";
+
+function formatRupiahText(num) {
+    if (!num || num <= 0) return '—';
+    return 'Rp ' + new Intl.NumberFormat('id-ID').format(num);
+}
+
+function updateBudgetCalculations(source) {
+    const dailyEl   = document.getElementById('budgetDailyInput');
+    const weeklyEl  = document.getElementById('budgetWeeklyInput');
+    const monthlyEl = document.getElementById('budgetMonthlyInput');
+    const yearlyEl  = document.getElementById('budgetYearlyInput');
+
+    let daily   = 0;
+    let weekly  = 0;
+    let monthly = 0;
+    let yearly  = 0;
+
+    if (source === 'daily') {
+        daily = parseFloat(dailyEl.value) || 0;
+        if (daily > 0) {
+            weekly  = Math.round(daily * 7);
+            monthly = Math.round(daily * 30);
+            yearly  = Math.round(monthly * 12);
+            weeklyEl.value  = weekly;
+            monthlyEl.value = monthly;
+            yearlyEl.value  = yearly;
+        } else {
+            weeklyEl.value  = '';
+            monthlyEl.value = '';
+            yearlyEl.value  = '';
+        }
+    } else if (source === 'weekly') {
+        weekly = parseFloat(weeklyEl.value) || 0;
+        if (weekly > 0) {
+            daily   = Math.round(weekly / 7);
+            monthly = Math.round(daily * 30);
+            yearly  = Math.round(monthly * 12);
+            dailyEl.value   = daily;
+            monthlyEl.value = monthly;
+            yearlyEl.value  = yearly;
+        } else {
+            dailyEl.value   = '';
+            monthlyEl.value = '';
+            yearlyEl.value  = '';
+        }
+    } else if (source === 'monthly') {
+        monthly = parseFloat(monthlyEl.value) || 0;
+        if (monthly > 0) {
+            daily   = Math.round(monthly / 30);
+            weekly  = Math.round(daily * 7);
+            yearly  = Math.round(monthly * 12);
+            dailyEl.value  = daily;
+            weeklyEl.value = weekly;
+            yearlyEl.value = yearly;
+        } else {
+            dailyEl.value  = '';
+            weeklyEl.value = '';
+            yearlyEl.value = '';
+        }
+    } else if (source === 'yearly') {
+        yearly = parseFloat(yearlyEl.value) || 0;
+        if (yearly > 0) {
+            monthly = Math.round(yearly / 12);
+            daily   = Math.round(monthly / 30);
+            weekly  = Math.round(daily * 7);
+            dailyEl.value   = daily;
+            weeklyEl.value  = weekly;
+            monthlyEl.value = monthly;
+        } else {
+            dailyEl.value   = '';
+            weeklyEl.value  = '';
+            monthlyEl.value = '';
+        }
+    }
+
+    // Format previews
+    document.getElementById('previewDailyFormatted').textContent   = daily > 0   ? formatRupiahText(daily)   + ' / hari'   : '—';
+    document.getElementById('previewWeeklyFormatted').textContent  = weekly > 0  ? formatRupiahText(weekly)  + ' / minggu' : '—';
+    document.getElementById('previewMonthlyFormatted').textContent = monthly > 0 ? formatRupiahText(monthly) + ' / bulan'  : '—';
+    document.getElementById('previewYearlyFormatted').textContent  = yearly > 0  ? formatRupiahText(yearly)  + ' / tahun'  : '—';
+
+    // Primary amount set
+    const mainAmountEl = document.getElementById('budgetAmount');
+    if (mainAmountEl) {
+        if (activeBudgetType === 'daily')       mainAmountEl.value = daily;
+        else if (activeBudgetType === 'weekly')  mainAmountEl.value = weekly;
+        else if (activeBudgetType === 'yearly')  mainAmountEl.value = yearly;
+        else                                    mainAmountEl.value = monthly;
+    }
+}
+
 function openBudgetModal() {
     document.getElementById('budgetModalTitle').textContent =
-        'Set Anggaran {{ match($activeTab){ "daily"=>"Harian","weekly"=>"Mingguan","yearly"=>"Tahunan",default=>"Bulanan" } }}';
+        'Set Anggaran {{ match($activeTab){ "daily"=>"Harian","weekly"=>"Mingguan","yearly"=>"Tahunan",default=>"Bulanan" } }} (Sinkronisasi Otomatis)';
     document.getElementById('budgetFormMethod').value  = 'POST';
     document.getElementById('budgetId').value          = '';
     document.getElementById('budgetCategory').value    = '';
     document.getElementById('budgetCategory').disabled = false;
     document.getElementById('budgetAmount').value      = '';
-    document.getElementById('budgetForm').action       = '{{ route("budgets.store") }}';
+
+    document.getElementById('budgetDailyInput').value   = '';
+    document.getElementById('budgetWeeklyInput').value  = '';
+    document.getElementById('budgetMonthlyInput').value = '';
+    document.getElementById('budgetYearlyInput').value  = '';
+
+    document.getElementById('previewDailyFormatted').textContent   = '—';
+    document.getElementById('previewWeeklyFormatted').textContent  = '—';
+    document.getElementById('previewMonthlyFormatted').textContent = '—';
+    document.getElementById('previewYearlyFormatted').textContent  = '—';
+
+    document.getElementById('budgetForm').action = '{{ route("budgets.store") }}';
     openModal('budgetModal');
+
+    // Auto-focus the field of the current tab
+    setTimeout(() => {
+        const targetId = activeBudgetType === 'daily'   ? 'budgetDailyInput' :
+                        (activeBudgetType === 'weekly'  ? 'budgetWeeklyInput' :
+                        (activeBudgetType === 'yearly'  ? 'budgetYearlyInput' : 'budgetMonthlyInput'));
+        const el = document.getElementById(targetId);
+        if (el) el.focus();
+    }, 100);
 }
 
 function openEditBudget(id, category, amount) {
     document.getElementById('budgetModalTitle').textContent =
-        (id ? 'Edit' : 'Set') + ' Anggaran {{ match($activeTab){ "daily"=>"Harian","weekly"=>"Mingguan","yearly"=>"Tahunan",default=>"Bulanan" } }}';
-    document.getElementById('budgetFormMethod').value  = id ? 'PUT' : 'POST';
+        (id ? 'Ubah' : 'Pasang') + ' Anggaran: ' + category;
+    document.getElementById('budgetFormMethod').value  = 'POST';
     document.getElementById('budgetId').value          = id || '';
     document.getElementById('budgetCategory').value    = category;
-    document.getElementById('budgetCategory').disabled = !!id;
-    document.getElementById('budgetAmount').value      = amount > 0 ? amount : '';
-    document.getElementById('budgetForm').action       = id ? `/budgets/${id}` : '{{ route("budgets.store") }}';
+    document.getElementById('budgetCategory').disabled = false;
+    document.getElementById('budgetForm').action       = '{{ route("budgets.store") }}';
+
+    if (amount > 0) {
+        if (activeBudgetType === 'daily') {
+            document.getElementById('budgetDailyInput').value = amount;
+            updateBudgetCalculations('daily');
+        } else if (activeBudgetType === 'weekly') {
+            document.getElementById('budgetWeeklyInput').value = amount;
+            updateBudgetCalculations('weekly');
+        } else if (activeBudgetType === 'yearly') {
+            document.getElementById('budgetYearlyInput').value = amount;
+            updateBudgetCalculations('yearly');
+        } else {
+            document.getElementById('budgetMonthlyInput').value = amount;
+            updateBudgetCalculations('monthly');
+        }
+    } else {
+        document.getElementById('budgetDailyInput').value   = '';
+        document.getElementById('budgetWeeklyInput').value  = '';
+        document.getElementById('budgetMonthlyInput').value = '';
+        document.getElementById('budgetYearlyInput').value  = '';
+        document.getElementById('previewDailyFormatted').textContent   = '—';
+        document.getElementById('previewWeeklyFormatted').textContent  = '—';
+        document.getElementById('previewMonthlyFormatted').textContent = '—';
+        document.getElementById('previewYearlyFormatted').textContent  = '—';
+    }
+
     openModal('budgetModal');
 }
 

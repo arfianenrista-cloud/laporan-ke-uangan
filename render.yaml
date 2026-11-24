@@ -17,3 +17,4 @@ services:
         value: database
       - key: CACHE_STORE
         value: database
+
